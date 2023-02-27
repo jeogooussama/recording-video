@@ -17,11 +17,6 @@
     <!-- Include the necessary libraries -->
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script>
-      // Check if the browser supports MediaRecorder
-      if (!('MediaRecorder' in window)) {
-        alert('Sorry, your browser does not support MediaRecorder API');
-      }
-
       // Define the variables
       const video = document.getElementById('video');
       const startButton = document.getElementById('startButton');
@@ -30,44 +25,9 @@
       let chunks = [];
       let isRecording = false;
 
-      // Get the user media
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(stream => {
-          video.srcObject = stream;
-          mediaRecorder = new MediaRecorder(stream);
-
-          // Handle the dataavailable event
-          mediaRecorder.ondataavailable = e => {
-            chunks.push(e.data);
-          };
-
-          // Handle the stop event
-          mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'video/webm' });
-            const videoURL = URL.createObjectURL(blob);
-            const downloadLink = document.createElement('a');
-            downloadLink.href = videoURL;
-            downloadLink.download = 'recording.webm';
-            downloadLink.click();
-
-            // Send the recorded file to the server
-            const formData = new FormData();
-            formData.append('video', blob, 'recording.webm');
-            axios.post('/stop-recording', formData)
-              .then(response => {
-                console.log(response.data.filePath);
-              })
-              .catch(error => {
-                console.log(error);
-              });
-          };
-        });
-
       // Handle the start button click event
       startButton.addEventListener('click', () => {
         if (!isRecording) {
-          mediaRecorder.start();
-          isRecording = true;
           startButton.disabled = true;
           stopButton.disabled = false;
 
@@ -75,6 +35,46 @@
           axios.post('/start-recording')
             .then(response => {
               console.log(response.data.message);
+
+              // Start recording
+              navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                  video.srcObject = stream;
+                  mediaRecorder = new MediaRecorder(stream);
+
+                  // Handle the dataavailable event
+                  mediaRecorder.ondataavailable = e => {
+                    chunks.push(e.data);
+                  };
+
+                  // Handle the stop event
+                  mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    const videoURL = URL.createObjectURL(blob);
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = videoURL;
+                    downloadLink.download = 'recording.webm';
+                    downloadLink.click();
+
+                    // Send the recorded file to the server
+                    const formData = new FormData();
+                    formData.append('video', blob, 'recording.webm');
+                    axios.post('/stop-recording', formData)
+                      .then(response => {
+                        console.log(response.data.filePath);
+                      })
+                      .catch(error => {
+                        console.log(error);
+                      });
+                  };
+
+                  // Start recording
+                  mediaRecorder.start();
+                  isRecording = true;
+                })
+                .catch(error => {
+                  console.log(error);
+                });
             })
             .catch(error => {
               console.log(error);
